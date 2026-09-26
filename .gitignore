@@ -1,0 +1,11 @@
+node_modules/
+target/
+build/
+__pycache__/
+*.pyc
+*.class
+.env
+*.log
+dist/
+coverage/
+.DS_Store
