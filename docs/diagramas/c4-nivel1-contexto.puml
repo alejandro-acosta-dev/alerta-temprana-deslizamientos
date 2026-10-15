@@ -1,0 +1,51 @@
+@startuml c4-nivel1-contexto
+title Vista de Contexto (C4 Nivel 1) — Diagrama UML de casos de uso / límites del sistema
+
+left to right direction
+skinparam dpi 150
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam packageStyle rectangle
+skinparam ArrowFontSize 11
+skinparam rectangle {
+  BackgroundColor #F2F2F2
+  BorderColor #555555
+}
+skinparam usecase {
+  BackgroundColor #F2F2F2
+  BorderColor #555555
+}
+skinparam actor {
+  BackgroundColor #F2F2F2
+  BorderColor #555555
+}
+
+' Actores humanos
+actor "Técnico" as tecnico
+actor "Administrador" as admin
+
+' Dispositivos externos (hardware que el caso no permite cambiar)
+rectangle "Sensores de humedad (8)\n«dispositivo externo»" as sensores
+rectangle "Celular receptor de SMS\n«dispositivo externo»" as celular
+
+' Sistemas externos
+rectangle "Servidor de correo\n«sistema externo»" as correo
+rectangle "Telegram\n«sistema externo»" as telegram
+
+' Límite del sistema
+rectangle "Sistema de Alerta Temprana de Deslizamientos\n«sistema de software»" as sistema {
+  usecase "Recibir y evaluar\nlecturas" as uc1
+  usecase "Notificar alertas" as uc2
+  usecase "Consultar alertas y\nestado de sensores" as uc3
+  usecase "Administrar umbrales\ny usuarios" as uc4
+}
+
+sensores --> celular : SMS
+celular --> uc1 : HTTPS\n(webhook)
+tecnico --> uc3 : HTTPS
+admin --> uc4 : HTTPS
+uc2 --> correo : SMTP
+uc2 --> telegram : HTTPS\n(Bot API)
+
+@enduml
