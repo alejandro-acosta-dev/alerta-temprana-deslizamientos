@@ -38,7 +38,7 @@ rectangle "Sistema de Alerta Temprana de Deslizamientos\n«sistema de software»
   usecase "Recibir y evaluar\nlecturas" as uc1
   usecase "Notificar alertas" as uc2
   usecase "Consultar alertas y\nestado de sensores" as uc3
-  usecase "Administrar umbrales\ny usuarios" as uc4
+  usecase "Configurar umbrales\nde riesgo" as uc4
 }
 
 sensores --> celular : SMS
