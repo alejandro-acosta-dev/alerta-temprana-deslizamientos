@@ -1,0 +1,61 @@
+@startuml c4-nivel2-contenedores
+title Vista de Contenedores (C4 Nivel 2) — Diagrama UML de componentes
+
+left to right direction
+skinparam dpi 150
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam ArrowFontSize 11
+skinparam packageStyle rectangle
+skinparam nodesep 40
+skinparam ranksep 55
+skinparam rectangle {
+  BackgroundColor #F2F2F2
+  BorderColor #555555
+}
+skinparam component {
+  BackgroundColor #F2F2F2
+  BorderColor #555555
+}
+skinparam database {
+  BackgroundColor #F2F2F2
+  BorderColor #555555
+}
+skinparam actor {
+  BackgroundColor #F2F2F2
+  BorderColor #555555
+}
+skinparam package {
+  BorderColor #555555
+}
+
+' Actores humanos
+actor "Técnico" as tecnico
+actor "Administrador" as admin
+
+' Dispositivos y sistemas externos (los mismos del nivel 1)
+rectangle "Sensores de humedad (8)\n«dispositivo externo»" as sensores
+rectangle "Celular receptor de SMS\n«dispositivo externo»" as celular
+rectangle "Servidor de correo\n«sistema externo»" as correo
+rectangle "Telegram\n«sistema externo»" as telegram
+
+' Límite del sistema: los tres contenedores
+package "Sistema de Alerta Temprana de Deslizamientos" as sistema {
+  component "Aplicación web\n«contenedor»\n[React 19 + Vite]\nInterfaz de usuario\n(3 pantallas)" as web
+  component "API Backend\n«contenedor»\n[Java 21 + Spring Boot 4.1.x]\nLógica de negocio (N-Capas)\nSeguridad: Spring Security\n+ JWT\nMigraciones: Flyway" as api
+  database "Base de datos\n«contenedor»\n[PostgreSQL 18]\nPersistencia relacional" as db
+}
+
+tecnico --> web : HTTPS
+admin --> web : HTTPS
+web --> api : JSON / HTTPS\nAPI REST + JWT
+api --> db : JDBC (Spring\nData JPA)\nTCP 5432
+
+sensores --> celular : SMS
+celular --> api : HTTPS\n(webhook)
+
+api --> correo : SMTP
+api --> telegram : HTTPS\n(Bot API)
+
+@enduml
