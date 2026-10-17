@@ -1,0 +1,70 @@
+@startuml diagrama-clases
+title Vista de Dominio — Diagrama UML de clases
+
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam dpi 150
+skinparam shadowing false
+skinparam roundCorner 5
+skinparam BackgroundColor white
+skinparam ClassBackgroundColor #F2F2F2
+skinparam ClassBorderColor #555555
+skinparam ClassAttributeIconSize 0
+skinparam ArrowColor #333333
+skinparam ArrowFontSize 12
+skinparam NoteBackgroundColor #FFFFFF
+skinparam NoteBorderColor #555555
+
+hide circle
+hide methods
+
+class Usuario {
+  «PK» id : Long
+  «UK» username : String
+  password_hash : String
+  rol : String {ADMINISTRADOR, TECNICO}
+  activo : Boolean
+}
+
+class Umbral {
+  «PK» id : Long
+  «FK, UK1» sensor_id : Long
+  «UK1» nivel : String {ADVERTENCIA, CRITICO}
+  valor : BigDecimal {0 a 100}
+  «FK» modificado_por : Long
+  modificado_en : OffsetDateTime
+  activo : Boolean
+}
+
+class Sensor {
+  «PK» id : Long
+  «UK» codigo : String
+  ubicacion : String
+  activo : Boolean
+}
+
+class Lectura {
+  «PK» id : Long
+  «FK, UK1» sensor_id : Long
+  humedad : BigDecimal {0 a 100}
+  «UK1» fecha_hora : OffsetDateTime
+  recibida_en : OffsetDateTime
+  activo : Boolean
+}
+
+class Alerta {
+  «PK» id : Long
+  «FK, UK1» lectura_id : Long
+  «UK1» tipo : String {UMBRAL, TENDENCIA}
+  nivel : String {ADVERTENCIA, CRITICO}
+  mensaje : String
+  generada_en : OffsetDateTime
+  activo : Boolean
+}
+
+Usuario "1" -right- "0..*" Umbral : modifica >
+Umbral "0..*" -right- "1" Sensor : tiene <
+Sensor "1" -down- "0..*" Lectura : reporta >
+Lectura "1" -left- "0..*" Alerta : dispara >
+
+@enduml
