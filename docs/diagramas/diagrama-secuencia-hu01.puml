@@ -1,0 +1,80 @@
+@startuml diagrama-secuencia-hu01
+!pragma teoz true
+title Vista Dinámica — Diagrama UML de secuencia de la HU-01
+
+skinparam defaultFontName Arial
+skinparam defaultFontSize 16
+skinparam dpi 150
+skinparam shadowing false
+skinparam roundCorner 5
+skinparam BackgroundColor white
+skinparam ParticipantBackgroundColor #F2F2F2
+skinparam ParticipantBorderColor #555555
+skinparam DatabaseBackgroundColor #F2F2F2
+skinparam DatabaseBorderColor #555555
+skinparam SequenceLifeLineBorderColor #555555
+skinparam SequenceBoxBackgroundColor #FFFFFF
+skinparam SequenceBoxBorderColor #555555
+skinparam SequenceGroupBackgroundColor #FFFFFF
+skinparam SequenceGroupBorderColor #555555
+skinparam ArrowColor #333333
+skinparam NoteBackgroundColor #FFFFFF
+skinparam NoteBorderColor #555555
+skinparam SequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+autonumber
+hide footbox
+
+participant "Celular receptor\n«dispositivo externo»" as CEL
+
+box "Presentación"
+  participant "LecturaController" as CTL
+end box
+
+box "Negocio"
+  participant "LecturaService" as LS
+  participant "AlertaService" as AS
+end box
+
+box "Datos"
+  participant "Repositorios\n(Spring Data JPA)" as REP
+end box
+
+database "PostgreSQL" as DB
+
+participant "Correo\n«sistema externo»" as MAIL
+participant "Telegram\n«sistema externo»" as TG
+
+CEL -> CTL : POST /api/lecturas/sms\ncabecera X-Webhook-Secret\ny texto del SMS
+
+alt secreto ausente o inválido (flujo alterno 1)
+  CTL --> CEL : 401 Unauthorized
+else secreto válido
+  CTL -> LS : registrar(lectura)
+  LS -> REP : guardar lectura
+  REP -> DB : INSERT lectura
+
+  alt repite sensor y fecha_hora (flujo alterno 2)
+    DB --> REP : viola UNIQUE
+    REP --> LS : excepción de integridad
+    LS --> CTL : lectura duplicada
+    CTL --> CEL : 409 Conflict
+  else lectura nueva (camino feliz)
+    LS -> REP : leer umbrales y últimas lecturas
+    REP -> DB : SELECT
+    REP --> LS : umbrales y lecturas previas
+    LS -> LS : evaluar umbral y tendencia
+    note right : AC-02: hasta aquí, máx. 5 s
+    LS -> AS : [hay riesgo] generar alerta
+    AS -> REP : guardar alerta
+    REP -> DB : INSERT alerta
+    AS -> MAIL : SMTP (canal 1)
+    AS -> TG : HTTPS, Bot API (canal 2)
+    note over MAIL, TG : canales independientes:\nsi uno falla, el otro entrega (AC-05)
+    LS --> CTL : resultado
+    CTL --> CEL : 201 Created
+  end
+end
+
+@enduml
