@@ -1,0 +1,26 @@
+# Base de datos de desarrollo: nodo "Base de datos" de la Vista de Despliegue (DAS, sección 3.5).
+# Lee DB_NAME, DB_USER y DB_PASSWORD del archivo .env (copia de .env.example).
+# Uso: docker compose up -d db
+services:
+  db:
+    image: postgres:18
+    container_name: alerta-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:?Defina DB_NAME en el archivo .env}
+      POSTGRES_USER: ${DB_USER:?Defina DB_USER en el archivo .env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD en el archivo .env}
+    ports:
+      # Solo accesible desde este equipo; la API es la única que usa la base (DAS 3.2).
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
+    volumes:
+      # PostgreSQL 18 guarda sus datos dentro de /var/lib/postgresql/18/docker
+      - alerta_pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  alerta_pgdata:
