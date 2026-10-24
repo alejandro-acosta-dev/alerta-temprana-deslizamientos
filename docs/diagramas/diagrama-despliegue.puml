@@ -1,0 +1,83 @@
+@startuml diagrama-despliegue
+title Vista de Despliegue — Diagrama UML de despliegue
+
+left to right direction
+skinparam dpi 150
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam ArrowFontSize 11
+skinparam BackgroundColor white
+skinparam nodesep 35
+skinparam ranksep 60
+skinparam node {
+  BackgroundColor #F2F2F2
+  BorderColor #555555
+}
+skinparam artifact {
+  BackgroundColor #FFFFFF
+  BorderColor #555555
+}
+skinparam database {
+  BackgroundColor #FFFFFF
+  BorderColor #555555
+}
+skinparam note {
+  BackgroundColor #FFFFFF
+  BorderColor #555555
+}
+skinparam legend {
+  BackgroundColor #FFFFFF
+  BorderColor #555555
+}
+skinparam rectangle {
+  BackgroundColor #F2F2F2
+  BorderColor #555555
+}
+
+' Dispositivos y sistemas externos (los mismos de las vistas 3.1 y 3.2)
+node "Sensores de humedad (8)\n«dispositivo externo»" as sensores
+
+node "Celular receptor\n«dispositivo externo»" as celular {
+  artifact "Aplicación de reenvío de SMS\n«artefacto de terceros»" as app
+}
+
+node "Computador del usuario\n«dispositivo»" as pc {
+  artifact "Navegador web" as nav
+}
+
+node "Servidor de correo\n«sistema externo»" as correo
+node "Telegram Bot API\n«sistema externo»" as telegram
+
+' Servidor propio: un solo equipo, sin infraestructura adicional (RA-02)
+node "Servidor de la aplicación\n«dispositivo»  1 equipo" as servidor {
+
+  node "Node.js 22 + Vite\n«entorno de ejecución»" as nodejs {
+    artifact "Aplicación web\nReact 19\nTCP 5173\n(Entrega 6)" as web
+  }
+
+  node "JVM Java 21\n«entorno de ejecución»" as jvm {
+    artifact "alerta-temprana-deslizamientos.jar\nSpring Boot 4.1.x (Tomcat embebido)\nTCP 8080" as api
+  }
+
+  node "Docker Engine\n«entorno de ejecución»" as docker {
+    node "Contenedor db\nimagen postgres:18" as dbc {
+      database "PostgreSQL 18\nTCP 5432\n(solo 127.0.0.1)" as bd
+    }
+  }
+}
+
+legend bottom
+  Variables de entorno sensibles de la API (solo nombres):
+  DB_USER, DB_PASSWORD, JWT_SECRET, WEBHOOK_SECRET, SMTP_USER, SMTP_PASSWORD, TELEGRAM_BOT_TOKEN
+endlegend
+
+sensores --> celular : SMS\n(red celular)
+app --> api : HTTPS (webhook)\nTCP 8080
+nav --> web : HTTP\nTCP 5173
+web --> api : JSON / HTTP\nTCP 8080 + JWT
+api --> bd : JDBC\nTCP 5432
+api --> correo : SMTP\nTCP 587
+api --> telegram : HTTPS (Bot API)\nTCP 443
+
+@enduml
