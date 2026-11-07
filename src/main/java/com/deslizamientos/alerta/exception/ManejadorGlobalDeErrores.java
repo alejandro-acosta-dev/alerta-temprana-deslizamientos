@@ -16,7 +16,10 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
  * Manejo centralizado de errores: un solo lugar traduce las excepciones a
  * respuestas HTTP, todas con la forma de ErrorDto. Los controladores y servicios
  * lanzan excepciones y no arman respuestas de error.
- * Cubre 400, 404, 409 y 503; el 401 y el 403 llegan con la seguridad (JWT).
+ * Cubre 400, 401 (login con credenciales incorrectas), 404, 409 y 503. El 401 por
+ * falta de token y el 403 por rol insuficiente los responde la capa de seguridad
+ * (RespuestasDeSeguridad) con la misma forma de ErrorDto, porque ocurren antes de
+ * llegar a un controlador.
  * No hay un manejador genérico de Exception: convertiría los 404 de rutas
  * inexistentes en 500.
  */
@@ -47,6 +50,11 @@ public class ManejadorGlobalDeErrores {
     @ExceptionHandler(SolicitudInvalidaException.class)
     public ResponseEntity<ErrorDto> solicitudInvalida(SolicitudInvalidaException ex) {
         return respuesta(HttpStatus.BAD_REQUEST, "BAD_REQUEST", ex.getMessage());
+    }
+
+    @ExceptionHandler(CredencialesInvalidasException.class)
+    public ResponseEntity<ErrorDto> credencialesInvalidas(CredencialesInvalidasException ex) {
+        return respuesta(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", ex.getMessage());
     }
 
     @ExceptionHandler(RecursoNoEncontradoException.class)
