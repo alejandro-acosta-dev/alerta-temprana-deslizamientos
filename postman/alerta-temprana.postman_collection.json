@@ -1,0 +1,697 @@
+{
+  "info": {
+    "name": "Alerta temprana de deslizamientos - CRUD de Alerta y seguridad",
+    "description": "Pruebas automaticas del corte vertical (Seccion 5.4 del DAS): login con JWT, CRUD de Alerta con borrado logico y errores 400, 401, 403, 404 y 409.\n\nAntes de ejecutarla: la API debe estar corriendo, los datos de demo cargados (db/pruebas/datos_demo.sql y usuarios_demo.sql) y las alertas reiniciadas (db/pruebas/reiniciar_alertas.sql), porque el borrado es logico y el UNIQUE (lectura_id, tipo) tambien cuenta las alertas desactivadas.\nEjecutar con Collection Runner, en el orden en que estan las peticiones. La variable baseUrl dice en que puerto corre la API.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8081"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "tokenTecnico",
+      "value": ""
+    },
+    {
+      "key": "alertaId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "01 Login administrador (200 y token)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
+              "const cuerpo = pm.response.json();",
+              "pm.test(\"Trae un token Bearer y el rol ADMINISTRADOR\", () => {",
+              "  pm.expect(cuerpo.token).to.be.a(\"string\").and.not.empty;",
+              "  pm.expect(cuerpo.tipo).to.eql(\"Bearer\");",
+              "  pm.expect(cuerpo.rol).to.eql(\"ADMINISTRADOR\");",
+              "});",
+              "pm.collectionVariables.set(\"token\", cuerpo.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"Admin2026*\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "auth": {
+          "type": "noauth"
+        }
+      }
+    },
+    {
+      "name": "02 Login con clave incorrecta (401)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Responde 401\", () => pm.response.to.have.status(401));",
+              "pm.test(\"El error es UNAUTHORIZED\", () => pm.expect(pm.response.json().estado).to.eql(\"UNAUTHORIZED\"));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"clave-incorrecta\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "auth": {
+          "type": "noauth"
+        }
+      }
+    },
+    {
+      "name": "03 Listar alertas sin token (401)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Responde 401\", () => pm.response.to.have.status(401));",
+              "pm.test(\"El error es UNAUTHORIZED\", () => pm.expect(pm.response.json().estado).to.eql(\"UNAUTHORIZED\"));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/alertas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "alertas"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        }
+      }
+    },
+    {
+      "name": "04 Crear alerta como administrador (201)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Responde 201\", () => pm.response.to.have.status(201));",
+              "const alerta = pm.response.json();",
+              "pm.test(\"Devuelve la alerta creada\", () => {",
+              "  pm.expect(alerta.id).to.be.a(\"number\");",
+              "  pm.expect(alerta.tipo).to.eql(\"UMBRAL\");",
+              "  pm.expect(alerta.nivel).to.eql(\"CRITICO\");",
+              "});",
+              "pm.test(\"La cabecera Location apunta a la nueva alerta\", () => {",
+              "  pm.expect(pm.response.headers.get(\"Location\")).to.include(\"/api/alertas/\" + alerta.id);",
+              "});",
+              "pm.collectionVariables.set(\"alertaId\", alerta.id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/alertas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "alertas"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"lecturaId\": 1,\n  \"tipo\": \"UMBRAL\",\n  \"nivel\": \"CRITICO\",\n  \"mensaje\": \"Humedad sobre el umbral critico\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "05 Crear la misma alerta otra vez (409)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Responde 409\", () => pm.response.to.have.status(409));",
+              "pm.test(\"El error es CONFLICT\", () => pm.expect(pm.response.json().estado).to.eql(\"CONFLICT\"));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/alertas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "alertas"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"lecturaId\": 1,\n  \"tipo\": \"UMBRAL\",\n  \"nivel\": \"CRITICO\",\n  \"mensaje\": \"Humedad sobre el umbral critico\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "06 Crear alerta con datos invalidos (400)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Responde 400\", () => pm.response.to.have.status(400));",
+              "pm.test(\"El error es BAD_REQUEST\", () => pm.expect(pm.response.json().estado).to.eql(\"BAD_REQUEST\"));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/alertas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "alertas"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"lecturaId\": 1,\n  \"nivel\": \"CRITICO\",\n  \"mensaje\": \"\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "07 Crear alerta de una lectura que no existe (400)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Responde 400\", () => pm.response.to.have.status(400));",
+              "pm.test(\"El mensaje dice que la lectura no existe\", () => pm.expect(pm.response.json().mensaje).to.include(\"no existe\"));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/alertas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "alertas"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"lecturaId\": 999,\n  \"tipo\": \"UMBRAL\",\n  \"nivel\": \"CRITICO\",\n  \"mensaje\": \"x\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "08 Obtener la alerta por id (200)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Es la alerta creada\", () => pm.expect(pm.response.json().id).to.eql(Number(pm.collectionVariables.get(\"alertaId\"))));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/alertas/{{alertaId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "alertas",
+            "{{alertaId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "09 Listar alertas (200)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"La lista incluye la alerta creada\", () => {",
+              "  const ids = pm.response.json().map(a => a.id);",
+              "  pm.expect(ids).to.include(Number(pm.collectionVariables.get(\"alertaId\")));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/alertas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "alertas"
+          ]
+        }
+      }
+    },
+    {
+      "name": "10 Actualizar nivel y mensaje (200)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Cambio el nivel y el mensaje\", () => {",
+              "  const alerta = pm.response.json();",
+              "  pm.expect(alerta.nivel).to.eql(\"ADVERTENCIA\");",
+              "  pm.expect(alerta.mensaje).to.eql(\"Humedad bajo vigilancia\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/alertas/{{alertaId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "alertas",
+            "{{alertaId}}"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nivel\": \"ADVERTENCIA\",\n  \"mensaje\": \"Humedad bajo vigilancia\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "11 Login tecnico (200 y token)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
+              "const cuerpo = pm.response.json();",
+              "pm.test(\"El rol es TECNICO\", () => pm.expect(cuerpo.rol).to.eql(\"TECNICO\"));",
+              "pm.collectionVariables.set(\"tokenTecnico\", cuerpo.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"tecnico\",\n  \"password\": \"Tecnico2026*\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "auth": {
+          "type": "noauth"
+        }
+      }
+    },
+    {
+      "name": "12 Crear alerta como tecnico (403)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Responde 403\", () => pm.response.to.have.status(403));",
+              "pm.test(\"El error es FORBIDDEN\", () => pm.expect(pm.response.json().estado).to.eql(\"FORBIDDEN\"));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/alertas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "alertas"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"lecturaId\": 2,\n  \"tipo\": \"UMBRAL\",\n  \"nivel\": \"CRITICO\",\n  \"mensaje\": \"El tecnico no puede crear\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tokenTecnico}}",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "13 Consultar alerta como tecnico (200)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/alertas/{{alertaId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "alertas",
+            "{{alertaId}}"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tokenTecnico}}",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "14 Eliminar la alerta - borrado logico (204)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Responde 204\", () => pm.response.to.have.status(204));",
+              "pm.test(\"La respuesta no trae cuerpo\", () => pm.expect(pm.response.text()).to.eql(\"\"));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/alertas/{{alertaId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "alertas",
+            "{{alertaId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "15 Obtener la alerta eliminada (404)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Responde 404\", () => pm.response.to.have.status(404));",
+              "pm.test(\"El error es NOT_FOUND\", () => pm.expect(pm.response.json().estado).to.eql(\"NOT_FOUND\"));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/alertas/{{alertaId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "alertas",
+            "{{alertaId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "16 Estado de la API sin token (200)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"La API y la base de datos estan UP\", () => {",
+              "  const e = pm.response.json();",
+              "  pm.expect(e.estado).to.eql(\"UP\");",
+              "  pm.expect(e.baseDatos.tablasDelEsquema).to.eql(5);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/estado",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "estado"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        }
+      }
+    }
+  ]
+}

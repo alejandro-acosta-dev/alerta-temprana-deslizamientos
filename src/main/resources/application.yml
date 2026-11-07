@@ -32,6 +32,13 @@ spring:
 server:
   port: ${SERVER_PORT:8080}
 
+# Seguridad: el secreto firma los tokens JWT (HS256, mínimo 32 caracteres) y se lee
+# de la variable JWT_SECRET. El token vence a los 60 minutos si no se indica otra cosa.
+seguridad:
+  jwt:
+    secreto: ${JWT_SECRET}
+    expiracion-minutos: ${JWT_EXPIRACION_MINUTOS:60}
+
 # Solo se expone /actuator/health y sin detalles (solo UP o DOWN).
 management:
   endpoints:
