@@ -143,7 +143,9 @@ El borrado de la API es lógico y el `UNIQUE (lectura_id, tipo)` también cuenta
 - `Connection refused` o `Connection to localhost:5432 refused`: la base no está arriba (paso 2). Con Docker, abrir primero Docker Desktop.
 - `password authentication failed`: la clave del `.env` no es la que tiene el rol en PostgreSQL. Si usó Docker y cambió la clave después de la primera vez, ejecutar `docker compose down -v` y volver a levantar la base (borra los datos de desarrollo).
 - `Port 8080 was already in use`: otro programa usa el puerto; defina `SERVER_PORT` en el `.env` (paso 3).
+- `class file version 65.0 ... only recognizes class file versions up to 61.0` al ejecutar `mvnw`: la variable `JAVA_HOME` apunta a un JDK anterior al 21. En PowerShell, para esa terminal: `$env:JAVA_HOME = "C:\Program Files\Java\jdk-21"` (ajustar a la carpeta del JDK 21 instalado). Para dejarlo fijo, cambiar `JAVA_HOME` en las variables de entorno de Windows.
 - 401 en todas las peticiones: falta la cabecera `Authorization: Bearer <token>` o el token venció (dura 60 minutos); iniciar sesión otra vez.
+- En Postman, el login funciona pero la petición 04 responde 401: hay un entorno de Postman seleccionado (arriba a la derecha) con variables propias que tapan el `token` de la colección. Elegir *No environment* y ejecutar de nuevo.
 - 400 al crear una alerta con `lecturaId` 1: no se cargaron los datos de demostración (paso 5).
 
 ## Estructura del repositorio
